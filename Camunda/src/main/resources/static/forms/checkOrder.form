@@ -1,0 +1,92 @@
+{
+  "components": [
+    {
+      "label": "Customer Id",
+      "type": "number",
+      "id": "Field_0unvufh",
+      "key": "customerId",
+      "description": "Used as a unique identifier in NodeRED",
+      "validate": {
+        "required": true
+      },
+      "defaultValue": 1
+    },
+    {
+      "label": "Customer name",
+      "type": "textfield",
+      "id": "Field_03pd0wl",
+      "key": "customerName",
+      "defaultValue": "Felix Jasper",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "values": [
+        {
+          "label": "Normal",
+          "value": "normal"
+        },
+        {
+          "label": "Emergency",
+          "value": "emergency"
+        }
+      ],
+      "label": "Task type",
+      "type": "select",
+      "id": "Field_0f6wx4k",
+      "key": "contractType",
+      "defaultValue": "normal",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "text": "### Customer location",
+      "type": "text",
+      "id": "Field_0ifc5ue"
+    },
+    {
+      "label": "latitude",
+      "type": "textfield",
+      "id": "Field_0zek6ge",
+      "key": "latitude",
+      "defaultValue": "48.999189",
+      "validate": {
+        "required": false
+      }
+    },
+    {
+      "label": "longitude",
+      "type": "textfield",
+      "id": "Field_0j126tp",
+      "key": "longitude",
+      "defaultValue": "12.093240",
+      "validate": {
+        "required": false
+      },
+      "properties": {}
+    },
+    {
+      "text": "_or_",
+      "type": "text",
+      "id": "Field_1ho8bmr"
+    },
+    {
+      "label": "Address",
+      "type": "textfield",
+      "id": "Field_0flx568",
+      "key": "customerAddress",
+      "defaultValue": "Universitätsstraße 31, 93053 Regensburg"
+    }
+  ],
+  "type": "default",
+  "id": "Form_14e8p9q",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.4.1"
+  },
+  "executionPlatform": "Camunda Platform",
+  "executionPlatformVersion": "7.17.0",
+  "schemaVersion": 5
+}

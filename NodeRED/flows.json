@@ -1,0 +1,1484 @@
+[
+    {
+        "id": "a5e0ae97dbb37099",
+        "type": "tab",
+        "label": "Szenario 2 (Location)",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "c0c37677d91090d1",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "9b7071af878d3b21",
+        "type": "subflow",
+        "name": "Calculate distances",
+        "info": "",
+        "category": "",
+        "in": [
+            {
+                "x": 140,
+                "y": 180,
+                "wires": [
+                    {
+                        "id": "a233a7ba4bf17808"
+                    }
+                ]
+            }
+        ],
+        "out": [
+            {
+                "x": 560,
+                "y": 180,
+                "wires": [
+                    {
+                        "id": "a233a7ba4bf17808",
+                        "port": 0
+                    }
+                ]
+            }
+        ],
+        "env": [],
+        "meta": {},
+        "color": "#DDAA99"
+    },
+    {
+        "id": "a233a7ba4bf17808",
+        "type": "function",
+        "z": "9b7071af878d3b21",
+        "name": "Calculate distance",
+        "func": "const customer = msg.payload.to;\nconst craftsmxn = msg.payload.from;\nconst customerId = msg.payload.customerId;\nmsg.payload = craftsmxn.map(([key, c]) => {\n    return {\n        \"id\": key,\n        \"distanceToCustomer\": getDistanceFromLatLonInM(c.latitude, c.longitude, customer.latitude, customer.longitude),\n    }\n});\n\nmsg.payload = { customerId, distances: msg.payload };\n\nreturn msg;\n\n// https://stackoverflow.com/questions/27928/calculate-distance-between-two-latitude-longitude-points-haversine-formula\nfunction getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {\n    var p = 0.017453292519943295;    // Math.PI / 180\n    var c = Math.cos;\n    var a = 0.5 - c((lat2 - lat1) * p) / 2 +\n        c(lat1 * p) * c(lat2 * p) *\n        (1 - c((lon2 - lon1) * p)) / 2;\n\n    return Math.round(12742 * 1000 * Math.asin(Math.sqrt(a))); // 2 * R; R = 6371 km\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 350,
+        "y": 180,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "8643cb77b131e4cc",
+        "type": "inject",
+        "z": "a5e0ae97dbb37099",
+        "name": "Initial variable setup",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 180,
+        "y": 120,
+        "wires": [
+            [
+                "69cc981d1f769101",
+                "98c4fea470d0ca40"
+            ]
+        ]
+    },
+    {
+        "id": "200bb1f1f2259b2a",
+        "type": "http in",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "url": "/new-order",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 300,
+        "wires": [
+            [
+                "fb428859caa670bb"
+            ]
+        ]
+    },
+    {
+        "id": "fb428859caa670bb",
+        "type": "json",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 390,
+        "y": 300,
+        "wires": [
+            [
+                "0c73ecb3fb2c5b76"
+            ]
+        ]
+    },
+    {
+        "id": "0c73ecb3fb2c5b76",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Save customer to global customer Map",
+        "func": "node.warn(\"saving new customer??ß\");\nconst customer = {\n    \"name\": msg.payload.customerName,\n    \"longitude\": msg.payload.longitude,\n    \"latitude\": msg.payload.latitude,\n    \"taskId\": undefined,\n    \"assignedCraftsmen\": undefined,\n    \"isNotified\": false,\n};\n\nlet customers = global.get(\"customers\");\n\nif (customers == undefined) {\n    customers = new Map();\n}\n\ncustomers.set(msg.payload.customerId, customer);\nglobal.set(\"customers\", customers);\n\nmsg.payload = { id: msg.payload.customerId,  ...customer };\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 670,
+        "y": 300,
+        "wires": [
+            [
+                "344b2ed8b3caf9b1",
+                "5dcc6ad12f47cfed"
+            ]
+        ],
+        "info": "Could also be saved to any kind of database"
+    },
+    {
+        "id": "69cc981d1f769101",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Create craftsmen in camunda and nodered",
+        "func": "const craftsmen = [{\n    \"profile\": {\n        \"id\": \"c1\",\n        \"firstName\": \"Albert\",\n        \"lastName\": \"Craftsmen\",\n        \"email\": \"anEmailAddress\"\n    },\n    \"credentials\": {\n        \"password\": \"demo\"\n    }\n},\n{\n    \"profile\": {\n        \"id\": \"c2\",\n        \"firstName\": \"Bernhard\",\n        \"lastName\": \"Craftsmen\",\n        \"email\": \"anEmailAddress\"\n    },\n    \"credentials\": {\n        \"password\": \"demo\"\n    }\n},\n{\n    \"profile\": {\n        \"id\": \"c3\",\n        \"firstName\": \"Charles\",\n        \"lastName\": \"Craftsmen\",\n        \"email\": \"anEmailAddress\"\n    },\n    \"credentials\": {\n        \"password\": \"demo\"\n    }\n}]\n\n\nconst craftsmenMap = new Map();\ncraftsmen.forEach(c => craftsmenMap.set(c.profile.id, { \"longitude\": -9999, \"latitude\": -9999, \"isBusy\": false }));\nglobal.set(\"craftsmen\", craftsmenMap);\n\ncraftsmen.forEach((c) => node.send({ payload: c }));\nreturn null;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 490,
+        "y": 120,
+        "wires": [
+            [
+                "f467138034bacb6d"
+            ]
+        ]
+    },
+    {
+        "id": "f467138034bacb6d",
+        "type": "http request",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "http://localhost:8080/engine-rest/user/create",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 770,
+        "y": 120,
+        "wires": [
+            [
+                "dcf9608987bd8544"
+            ]
+        ]
+    },
+    {
+        "id": "98c4fea470d0ca40",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Create craftsmen group for camunda",
+        "func": "msg.payload = {\n    \"id\": \"craftsmen\",\n    \"name\": \"Craftsmen\",\n    \"type\": \"Organizational Unit\"\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 180,
+        "wires": [
+            [
+                "42c6f80a04ab9b0e"
+            ]
+        ]
+    },
+    {
+        "id": "42c6f80a04ab9b0e",
+        "type": "http request",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "http://localhost:8080/engine-rest/group/create",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 770,
+        "y": 180,
+        "wires": [
+            [
+                "0931792f16d7c90c"
+            ]
+        ]
+    },
+    {
+        "id": "0931792f16d7c90c",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "camunda: assign craftsmen to group",
+        "func": "const groupAssignments = [{\n    \"userId\": \"c1\",\n    \"id\": \"craftsmen\"\n},\n{\n    \"userId\": \"c2\",\n    \"id\": \"craftsmen\"\n},\n{\n    \"userId\": \"c3\",\n    \"id\": \"craftsmen\"\n}]\n\ngroupAssignments.forEach((c) => {\n    msg.url = \"http://localhost:8080/engine-rest/group/\" + c.id + \"/members/\" + c.userId;\n    msg.method = \"PUT\"\n    node.send(msg);\n});\n\nreturn null;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1050,
+        "y": 180,
+        "wires": [
+            [
+                "4b55863b274352aa"
+            ]
+        ]
+    },
+    {
+        "id": "dcf9608987bd8544",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "camunda: unlock user accounts",
+        "func": "const groupAssignments = [\"c1\", \"c2\", \"c3\"]\n\ngroupAssignments.forEach((c) => {\n    msg.url = \"http://localhost:8080/engine-rest/user/\" + c + \"/unlock\";\n    msg.method = \"POST\"\n    node.send(msg);\n});\n\nreturn null;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1030,
+        "y": 120,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "cf29314940bd0b9e",
+        "type": "debug",
+        "z": "a5e0ae97dbb37099",
+        "name": "log distance",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1350,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "b01a463f483e663a",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Set initial location for craftsmen",
+        "func": "const addresses = [\n    \"Universitätsstraße 31, 93053 Regensburg\",\n    \"Bismarckplatz 1, 93047 Regensburg\",\n    \"Sandstraße 31, 96047 Bamberg\"\n];\n\nlet s = addresses.map(a => {\n    return { query: a }\n});\n\nreturn s;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1410,
+        "y": 180,
+        "wires": [
+            [
+                "487914fbd84d1c98"
+            ]
+        ]
+    },
+    {
+        "id": "4775cea2cd3461d9",
+        "type": "http request",
+        "z": "a5e0ae97dbb37099",
+        "name": "Transform address to long lat",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "https://nominatim.openstreetmap.org/search?q={{{query}}}&format=json&polygon=1&addressdetails=1",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 1900,
+        "y": 180,
+        "wires": [
+            [
+                "782d92282c83d4ce"
+            ]
+        ]
+    },
+    {
+        "id": "782d92282c83d4ce",
+        "type": "json",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 2110,
+        "y": 180,
+        "wires": [
+            [
+                "6979b9a5f13b3ce3"
+            ]
+        ]
+    },
+    {
+        "id": "6979b9a5f13b3ce3",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Assign initial location to each craftsman",
+        "func": "let craftsmen = global.get(\"craftsmen\");\n\nArray.from(craftsmen.entries()).map((c, index) => {\n    c[1].longitude = msg.payload[index].lon;\n    c[1].latitude = msg.payload[index].lat;\n})\n\nglobal.set(\"craftsmen\", craftsmen);\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 2380,
+        "y": 120,
+        "wires": [
+            [
+                "bc0f25142feba956"
+            ]
+        ]
+    },
+    {
+        "id": "487914fbd84d1c98",
+        "type": "delay",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "1",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 1660,
+        "y": 180,
+        "wires": [
+            [
+                "4775cea2cd3461d9"
+            ]
+        ]
+    },
+    {
+        "id": "4b55863b274352aa",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "fake initial locations for craftsmen",
+        "func": "msg.payload = [{\n    lat: 49.038857,\n    lon: 12.104933\n}, {\n    lat: 49.013767,\n    lon: 12.038035\n},\n{\n    lat: 49.012049,\n    lon: 12.134881\n},];\n\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1420,
+        "y": 120,
+        "wires": [
+            [
+                "6979b9a5f13b3ce3"
+            ]
+        ]
+    },
+    {
+        "id": "344b2ed8b3caf9b1",
+        "type": "http response",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 930,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "4bf869aace08ef02",
+        "type": "inject",
+        "z": "a5e0ae97dbb37099",
+        "name": "Move towards customer",
+        "props": [
+            {
+                "p": "payload.customerId",
+                "v": "1",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 190,
+        "y": 720,
+        "wires": [
+            [
+                "195fd8286ce24d8b"
+            ]
+        ]
+    },
+    {
+        "id": "197089671d4b695e",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Trigger Camunda event if distance < 5 km",
+        "func": "const customer = global.get(\"customers\").get(msg.payload.customerId.toString());\n\nif (msg.payload.distanceToCustomer < 5000 && msg.payload.distanceToCustomer >= 500 && !customer.isNotified) {\n    msg.method = \"PUT\";\n    msg.id = customer.taskId;\n\n    customer.isNotified = true;\n\n    msg.payload = {\n        \"value\": true,\n        \"type\": \"Boolean\",\n    };\n\n    node.warn(\"Should notify customer\");\n\n    return msg;\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1600,
+        "y": 720,
+        "wires": [
+            [
+                "ba8eb69d0b9fbe6c"
+            ]
+        ]
+    },
+    {
+        "id": "ba8eb69d0b9fbe6c",
+        "type": "http request",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "method": "use",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "http://localhost:8080/engine-rest/task/{{id}}/variables/informCustomerNow",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 1850,
+        "y": 720,
+        "wires": [
+            [
+                "cfedafee534b260a"
+            ]
+        ]
+    },
+    {
+        "id": "cfedafee534b260a",
+        "type": "debug",
+        "z": "a5e0ae97dbb37099",
+        "name": "Inform customer arriving shortly",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 2070,
+        "y": 720,
+        "wires": []
+    },
+    {
+        "id": "85d47b4326bd7043",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Arrive at customer, if distance < 500 m",
+        "func": "const customer = global.get(\"customers\").get(msg.payload.customerId.toString());\n\nif (msg.payload.distanceToCustomer < 200) {\n    msg.method = \"POST\";\n    msg.id = customer.taskId;\n    node.warn(\"Arrived at customer and definetly started working instantly\");\n    return msg;\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1590,
+        "y": 760,
+        "wires": [
+            [
+                "008fb477435315f5"
+            ]
+        ]
+    },
+    {
+        "id": "008fb477435315f5",
+        "type": "http request",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "method": "use",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "http://localhost:8080/engine-rest/task/{{id}}/complete",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 1850,
+        "y": 760,
+        "wires": [
+            [
+                "82c6012f5aaec82c"
+            ]
+        ]
+    },
+    {
+        "id": "82c6012f5aaec82c",
+        "type": "debug",
+        "z": "a5e0ae97dbb37099",
+        "name": "Arrived at customer location",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 2060,
+        "y": 760,
+        "wires": []
+    },
+    {
+        "id": "e5a813791634c1b2",
+        "type": "inject",
+        "z": "a5e0ae97dbb37099",
+        "name": "Move away from customer",
+        "props": [
+            {
+                "p": "payload.customerId",
+                "v": "1",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 190,
+        "y": 860,
+        "wires": [
+            [
+                "b9ba397dc89aafca"
+            ]
+        ]
+    },
+    {
+        "id": "b9ba397dc89aafca",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Craftsmen finished job and leaves geofence around customer",
+        "func": "const customer = global.get(\"customers\").get(msg.payload.customerId);\nconst assignedCraftsmen = global.get(\"craftsmen\").get(customer.assignedCraftsmen);\n\n// TODO: Send location again + Drive towards depot????? Even if only in one step\nassignedCraftsmen.latitude = 49.018885;\nassignedCraftsmen.longitude = 12.089688;\n\nmsg.method = \"POST\";\nmsg.id = customer.taskId;\n\ncustomer.assignedCraftsmen = undefined;\ncustomer.taskId = undefined;\ncustomer.isNotified = false;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 600,
+        "y": 860,
+        "wires": [
+            [
+                "0c4c8df59af54378",
+                "5a7ba7f5874019c3"
+            ]
+        ]
+    },
+    {
+        "id": "e9044367a66f6b3e",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Debug Customer and Craftsmen",
+        "func": "node.warn(global.get(\"customers\"));\nnode.warn(global.get(\"craftsmen\"));\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 2570,
+        "y": 360,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "a8bc52fe0987f025",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Update distance variable in camunda",
+        "func": "const customer = global.get(\"customers\").get(msg.payload.customerId.toString());\n\nmsg.method = \"PUT\";\nmsg.id = customer.taskId;\nmsg.payload = {\n    \"value\": msg.payload.distanceToCustomer,\n    \"type\": \"Integer\",\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1590,
+        "y": 680,
+        "wires": [
+            [
+                "d6450682b92d52dc"
+            ]
+        ]
+    },
+    {
+        "id": "d6450682b92d52dc",
+        "type": "http request",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "method": "use",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "http://localhost:8080/engine-rest/task/{{id}}/variables/currentDistanceToCustomer",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 1850,
+        "y": 680,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "0c4c8df59af54378",
+        "type": "http request",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "method": "use",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "http://localhost:8080/engine-rest/task/{{id}}/complete",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 1170,
+        "y": 860,
+        "wires": [
+            [
+                "49de4ce38af397a9"
+            ]
+        ]
+    },
+    {
+        "id": "49de4ce38af397a9",
+        "type": "debug",
+        "z": "a5e0ae97dbb37099",
+        "name": "Finished working at customer",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1400,
+        "y": 860,
+        "wires": []
+    },
+    {
+        "id": "aa0a11d69639fbed",
+        "type": "http in",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "url": "/update-customer/:id",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 1320,
+        "y": 300,
+        "wires": [
+            [
+                "d1e5088e8199344d"
+            ]
+        ]
+    },
+    {
+        "id": "d1e5088e8199344d",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Update customer information for current camunda task",
+        "func": "const taskId = msg.req.params.id;\nconst body = JSON.parse(msg.payload);\n\nlet customers = global.get(\"customers\");\nconst customer = customers.get(body.customerId);\n\ncustomers.set(body.customerId, { ...customer, taskId, ...body })\n\nglobal.set(\"customers\", customers);\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1690,
+        "y": 300,
+        "wires": [
+            [
+                "d0097ab525efb1da"
+            ]
+        ]
+    },
+    {
+        "id": "d0097ab525efb1da",
+        "type": "http response",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 2010,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "d30a64816ca16ba8",
+        "type": "inject",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 2340,
+        "y": 360,
+        "wires": [
+            [
+                "e9044367a66f6b3e"
+            ]
+        ]
+    },
+    {
+        "id": "ee95d27e8c69fca8",
+        "type": "http in",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "url": "/job-finished/:craftsmanId",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 1330,
+        "y": 340,
+        "wires": [
+            [
+                "9c4d08909b81804c"
+            ]
+        ]
+    },
+    {
+        "id": "9c4d08909b81804c",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Set craftsmen not busy",
+        "func": "const craftsmanId = msg.req.params.craftsmanId;\n\nglobal.get(\"craftsmen\").get(craftsmanId).isBusy = false;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1590,
+        "y": 340,
+        "wires": [
+            [
+                "0416693224d0976d"
+            ]
+        ]
+    },
+    {
+        "id": "0416693224d0976d",
+        "type": "http response",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 2010,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "681d3c6a48def126",
+        "type": "comment",
+        "z": "a5e0ae97dbb37099",
+        "name": "Internal endpoints to \"sync\" state",
+        "info": "",
+        "x": 1330,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "a2b8045e49671d96",
+        "type": "comment",
+        "z": "a5e0ae97dbb37099",
+        "name": "Create order and save customer to \"database\" if unknown",
+        "info": "",
+        "x": 290,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "0ebf7ee5186ac943",
+        "type": "comment",
+        "z": "a5e0ae97dbb37099",
+        "name": "Calculate distances of all not busy craftsmen to customer",
+        "info": "",
+        "x": 290,
+        "y": 540,
+        "wires": []
+    },
+    {
+        "id": "f2636ee72de4b0db",
+        "type": "comment",
+        "z": "a5e0ae97dbb37099",
+        "name": "Move craftsman towards customer -> inform customer if <5000m and start working if <200m",
+        "info": "",
+        "x": 390,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "f75232e069e779b0",
+        "type": "comment",
+        "z": "a5e0ae97dbb37099",
+        "name": "Finish job @ customer automatically when moving away more than 200m",
+        "info": "",
+        "x": 340,
+        "y": 820,
+        "wires": []
+    },
+    {
+        "id": "0deffe509d397cfe",
+        "type": "comment",
+        "z": "a5e0ae97dbb37099",
+        "name": "Setup global variables (create craftsmen and set initial locations)",
+        "info": "Will throw warning in camunda if accounts already exist -> only a warning!",
+        "x": 310,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "12f93fcb5efda7b5",
+        "type": "worldmap",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "lat": "49.017729",
+        "lon": "12.095554",
+        "zoom": "14",
+        "layer": "OSMC",
+        "cluster": "",
+        "maxage": "",
+        "usermenu": "show",
+        "layers": "show",
+        "panit": "false",
+        "panlock": "false",
+        "zoomlock": "false",
+        "hiderightclick": "false",
+        "coords": "none",
+        "showgrid": "false",
+        "allowFileDrop": "false",
+        "path": "/worldmap",
+        "overlist": "DR,CO,RA,DN,HM",
+        "maplist": "OSMG,OSMC",
+        "mapname": "",
+        "mapurl": "",
+        "mapopt": "",
+        "mapwms": false,
+        "x": 1920,
+        "y": 800,
+        "wires": []
+    },
+    {
+        "id": "5a7ba7f5874019c3",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Update locations on map",
+        "func": "msg.payload = Array.from(global.get(\"craftsmen\")).map(([key, c]) => {\n    return { name: key, iconColor: key == msg.payload.assignedCraftsmen ? \"red\" : \"black\", lat: c.latitude, lon: c.longitude, icon: \"car\" };\n});\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1550,
+        "y": 800,
+        "wires": [
+            [
+                "11800f1727255f43",
+                "12f93fcb5efda7b5"
+            ]
+        ]
+    },
+    {
+        "id": "4a6f94965ed658da",
+        "type": "worldmap",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "lat": "49.017729",
+        "lon": "12.095554",
+        "zoom": "14",
+        "layer": "OSMC",
+        "cluster": "",
+        "maxage": "",
+        "usermenu": "show",
+        "layers": "show",
+        "panit": "false",
+        "panlock": "false",
+        "zoomlock": "false",
+        "hiderightclick": "false",
+        "coords": "none",
+        "showgrid": "false",
+        "allowFileDrop": "false",
+        "path": "/worldmap",
+        "overlist": "DR,CO,RA,DN,HM",
+        "maplist": "OSMG,OSMC",
+        "mapname": "",
+        "mapurl": "",
+        "mapopt": "",
+        "mapwms": false,
+        "x": 1100,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "195fd8286ce24d8b",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Assigned craftsmen moves randomly towards customer location",
+        "func": "// Explicitly just the assigned customer\n\nconst customer = global.get(\"customers\").get(msg.payload.customerId.toString());\nconst craftsman = global.get(\"craftsmen\").get(customer.assignedCraftsmen);\n\nconst target = [customer.latitude, customer.longitude];\n\nconst towardsLatSign = Math.sign(customer.latitude - craftsman.latitude);\nconst towardsLonSign = Math.sign(customer.longitude - craftsman.longitude);\n\ncraftsman.latitude += towardsLatSign * randn_bm() * 0.01;\ncraftsman.longitude += towardsLonSign * randn_bm() * 0.01;\n\nmsg.payload.from = Array.of([customer.assignedCraftsmen, craftsman]);\nmsg.payload.to = customer;\n\nreturn msg;\n\n// Box-Muller transformation (https://stackoverflow.com/questions/25582882/javascript-math-random-normal-distribution-gaussian-bell-curve)\nfunction randn_bm() {\n    let u = 0, v = 0;\n    while (u === 0) u = Math.random(); //Converting [0,1) to (0,1)\n    while (v === 0) v = Math.random();\n    let num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);\n    num = num / 10.0 + 0.5; // Translate to 0 -> 1\n    if (num > 1 || num < 0) return randn_bm() // resample between 0 and 1\n    return num\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 570,
+        "y": 720,
+        "wires": [
+            [
+                "33f557a64dfaecb8"
+            ]
+        ]
+    },
+    {
+        "id": "06d2d4c91d36a3cb",
+        "type": "http in",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "url": "/is-any-available",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 180,
+        "y": 460,
+        "wires": [
+            [
+                "eb06d99b81676e11"
+            ]
+        ]
+    },
+    {
+        "id": "eb06d99b81676e11",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Check if any craftsmen is available (not busy)",
+        "func": "const craftsmen = global.get(\"craftsmen\");\n\n// any available = not all busy\nlet anyAvailable = Array.from(craftsmen).map(([_, c]) => c.isBusy).some(x => x == false);\nmsg.payload = anyAvailable.toString();\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 590,
+        "y": 460,
+        "wires": [
+            [
+                "60d05a916bc748f7"
+            ]
+        ]
+    },
+    {
+        "id": "60d05a916bc748f7",
+        "type": "http response",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1190,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "373fae7c1f341efd",
+        "type": "http in",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "url": "/craftsmen-assignment/:customerId",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 240,
+        "y": 580,
+        "wires": [
+            [
+                "5085f575aa7d02da"
+            ]
+        ]
+    },
+    {
+        "id": "fa420b6adc11bdef",
+        "type": "comment",
+        "z": "a5e0ae97dbb37099",
+        "name": "Initial checks using location and business info",
+        "info": "",
+        "x": 250,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "0bd06224ad1f06d8",
+        "type": "subflow:9b7071af878d3b21",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "x": 810,
+        "y": 420,
+        "wires": [
+            [
+                "fa441187ec61539f"
+            ]
+        ]
+    },
+    {
+        "id": "8cfabc0e3bf9341a",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Get data for distance calculation",
+        "func": "const to = global.get(\"customers\").get(msg.req.params.customerId);\nconst from = Array.from(global.get(\"craftsmen\"));\n\nmsg.payload.to = to;\nmsg.payload.from = from;\nmsg.payload.customerId = msg.req.params.customerId;\n\nnode.warn(msg.payload);\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 550,
+        "y": 420,
+        "wires": [
+            [
+                "0bd06224ad1f06d8"
+            ]
+        ]
+    },
+    {
+        "id": "fa441187ec61539f",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Sort distances",
+        "func": "msg.payload = msg.payload.distances.sort((a, b) => a.distanceToCustomer - b.distanceToCustomer);\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1020,
+        "y": 420,
+        "wires": [
+            [
+                "92ad3807cfb3df63"
+            ]
+        ]
+    },
+    {
+        "id": "ebf9f9700b15c767",
+        "type": "http in",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "url": "/craftsmen-distances/:customerId",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 230,
+        "y": 420,
+        "wires": [
+            [
+                "8cfabc0e3bf9341a"
+            ]
+        ]
+    },
+    {
+        "id": "92ad3807cfb3df63",
+        "type": "http response",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1190,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "5085f575aa7d02da",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Get data for distance calculation",
+        "func": "const to = global.get(\"customers\").get(msg.req.params.customerId);\nconst from = Array.from(global.get(\"craftsmen\")).filter(([_, c]) => !c.isBusy);\n\n\nmsg.payload.to = to;\nmsg.payload.from = from;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 550,
+        "y": 580,
+        "wires": [
+            [
+                "6b06f1dd7f471bb8"
+            ]
+        ]
+    },
+    {
+        "id": "6b06f1dd7f471bb8",
+        "type": "subflow:9b7071af878d3b21",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "x": 810,
+        "y": 580,
+        "wires": [
+            [
+                "02c60a63f1f27cb7"
+            ]
+        ]
+    },
+    {
+        "id": "02c60a63f1f27cb7",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Sort distances and set closest to busy",
+        "func": "msg.payload = msg.payload.distances.sort((a, b) => a.distanceToCustomer - b.distanceToCustomer);\nglobal.get(\"craftsmen\").get(msg.payload[0].id).isBusy = true;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1090,
+        "y": 580,
+        "wires": [
+            [
+                "e08dca86640f7591",
+                "cf29314940bd0b9e",
+                "878e70fd0d47d66f"
+            ]
+        ]
+    },
+    {
+        "id": "e08dca86640f7591",
+        "type": "http response",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1330,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "33f557a64dfaecb8",
+        "type": "subflow:9b7071af878d3b21",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "x": 930,
+        "y": 720,
+        "wires": [
+            [
+                "3a44d8c451f24dc1"
+            ]
+        ]
+    },
+    {
+        "id": "3a44d8c451f24dc1",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Setup data and log current distance",
+        "func": "const customer = global.get(\"customers\").get(msg.payload.customerId.toString());\n\nmsg.payload.distanceToCustomer = msg.payload.distances[0].distanceToCustomer;\nmsg.payload.customerId = msg.payload.customerId;\nmsg.payload.assignedCraftsmen = customer.assignedCraftsmen;\n\nnode.warn(`${customer.assignedCraftsmen} is currently ${msg.payload.distanceToCustomer} m away from customer ${customer.customerId}`);\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1210,
+        "y": 720,
+        "wires": [
+            [
+                "a8bc52fe0987f025",
+                "197089671d4b695e",
+                "85d47b4326bd7043",
+                "5a7ba7f5874019c3"
+            ]
+        ]
+    },
+    {
+        "id": "5dcc6ad12f47cfed",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Update map",
+        "func": "const m1 = {\n    name: \"radius\" + msg.payload.name,\n    lat: msg.payload.latitude,\n    lon: msg.payload.longitude,\n    radius: 200,\n    fillColor: '#f00',\n    stroke: false,\n    fillOpacity: 0.2,\n};\n\nconst m2 = {\n    name: \"radius2\" + msg.payload.name,\n    lat: msg.payload.latitude,\n    lon: msg.payload.longitude,\n    radius: 1000,\n    fillColor: '#00f',\n    stroke: false,\n    fillOpacity: 0.2,\n};\n\nconst m3 = {\n    name: msg.payload.name,\n    icon: \"house\",\n    lat: msg.payload.latitude,\n    lon: msg.payload.longitude\n}\n\nmsg.payload = [m1, m2, m3];\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 950,
+        "y": 340,
+        "wires": [
+            [
+                "4a6f94965ed658da"
+            ]
+        ]
+    },
+    {
+        "id": "5e8c84c1d8bbeb33",
+        "type": "worldmap",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "lat": "49.017729",
+        "lon": "12.095554",
+        "zoom": "14",
+        "layer": "OSMC",
+        "cluster": "",
+        "maxage": "",
+        "usermenu": "show",
+        "layers": "show",
+        "panit": "false",
+        "panlock": "false",
+        "zoomlock": "false",
+        "hiderightclick": "false",
+        "coords": "none",
+        "showgrid": "false",
+        "allowFileDrop": "false",
+        "path": "/worldmap",
+        "overlist": "DR,CO,RA,DN,HM",
+        "maplist": "OSMG,OSMC",
+        "mapname": "",
+        "mapurl": "",
+        "mapopt": "",
+        "mapwms": false,
+        "x": 2860,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "bc0f25142feba956",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "Draw on map",
+        "func": "msg.payload = Array.from(global.get(\"craftsmen\")).map(([key, c]) => {\n    return { \"name\": key, \"lat\": c.latitude, \"lon\": c.longitude, \"icon\": \"car\" };\n});\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 2680,
+        "y": 120,
+        "wires": [
+            [
+                "5e8c84c1d8bbeb33"
+            ]
+        ]
+    },
+    {
+        "id": "11800f1727255f43",
+        "type": "worldmap-tracks",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "depth": 20,
+        "layer": "combined",
+        "smooth": false,
+        "x": 1750,
+        "y": 800,
+        "wires": [
+            [
+                "12f93fcb5efda7b5"
+            ]
+        ]
+    },
+    {
+        "id": "d7c2b46e3f01012a",
+        "type": "worldmap",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "lat": "",
+        "lon": "",
+        "zoom": "",
+        "layer": "OSMG",
+        "cluster": "",
+        "maxage": "",
+        "usermenu": "show",
+        "layers": "show",
+        "panit": "false",
+        "panlock": "false",
+        "zoomlock": "false",
+        "hiderightclick": "false",
+        "coords": "none",
+        "showgrid": "false",
+        "allowFileDrop": "false",
+        "path": "/worldmap",
+        "overlist": "DR,CO,RA,DN,HM",
+        "maplist": "OSMG,OSMC,EsriC,EsriS,EsriT,EsriDG,UKOS",
+        "mapname": "",
+        "mapurl": "",
+        "mapopt": "",
+        "mapwms": false,
+        "x": 1520,
+        "y": 540,
+        "wires": []
+    },
+    {
+        "id": "878e70fd0d47d66f",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "function 1",
+        "func": "msg.payload = { \"name\": msg.payload[0].id, iconColor: \"red\" };\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1340,
+        "y": 540,
+        "wires": [
+            [
+                "d7c2b46e3f01012a"
+            ]
+        ]
+    },
+    {
+        "id": "a0125535d6029bf6",
+        "type": "http request",
+        "z": "a5e0ae97dbb37099",
+        "name": "Transform address to long lat",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "https://nominatim.openstreetmap.org/search?q={{{query}}}&format=json&polygon=1&addressdetails=1",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 460,
+        "y": 340,
+        "wires": [
+            [
+                "13c35d097fd77075"
+            ]
+        ]
+    },
+    {
+        "id": "13c35d097fd77075",
+        "type": "json",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 670,
+        "y": 340,
+        "wires": [
+            [
+                "0c73ecb3fb2c5b76"
+            ]
+        ]
+    },
+    {
+        "id": "b7a26a24de7a0695",
+        "type": "http in",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "url": "/craftsmen",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 140,
+        "y": 1000,
+        "wires": [
+            [
+                "a1edd9b5a446104a"
+            ]
+        ]
+    },
+    {
+        "id": "a1edd9b5a446104a",
+        "type": "function",
+        "z": "a5e0ae97dbb37099",
+        "name": "function 2",
+        "func": "msg.payload = Array.from(global.get(\"craftsmen\"));\nnode.warn(msg.payload);\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 340,
+        "y": 1000,
+        "wires": [
+            [
+                "1ef8c8ce5944a616"
+            ]
+        ]
+    },
+    {
+        "id": "1ef8c8ce5944a616",
+        "type": "http response",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 550,
+        "y": 1000,
+        "wires": []
+    },
+    {
+        "id": "569e6b377117fd0e",
+        "type": "http in",
+        "z": "a5e0ae97dbb37099",
+        "name": "",
+        "url": "/move-actor",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 760,
+        "wires": [
+            [
+                "195fd8286ce24d8b"
+            ]
+        ]
+    }
+]

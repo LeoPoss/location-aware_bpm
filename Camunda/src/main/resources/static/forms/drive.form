@@ -1,0 +1,25 @@
+{
+  "components": [
+    {
+      "text": "*This task will end automatically when the worker arrived at the customers location. The customer is getting notified if the assigned craftsmen is closer than 500m.*",
+      "type": "text",
+      "id": "Field_0jnkayx"
+    },
+    {
+      "label": "Current distance to customer in m",
+      "type": "number",
+      "id": "Field_15tb0cn",
+      "key": "currentDistanceToCustomer",
+      "disabled": true
+    }
+  ],
+  "type": "default",
+  "id": "Form_1mitfr7",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.3.0"
+  },
+  "executionPlatform": "Camunda Platform",
+  "executionPlatformVersion": "7.17.0",
+  "schemaVersion": 4
+}

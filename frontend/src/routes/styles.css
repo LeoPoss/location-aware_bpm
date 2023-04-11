@@ -1,0 +1,8 @@
+@import '@fontsource/fira-mono';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+div.notifications div {
+    z-index: 1000;
+}

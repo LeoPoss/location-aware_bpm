@@ -1,0 +1,32 @@
+{
+  "components": [
+    {
+      "text": "# Timesheet",
+      "type": "text",
+      "id": "Field_1bnyuct"
+    },
+    {
+      "label": "Time traveling",
+      "type": "textfield",
+      "id": "Field_03k7j33",
+      "key": "travelDuration",
+      "disabled": true
+    },
+    {
+      "label": "Time working",
+      "type": "textfield",
+      "id": "Field_02vo5ro",
+      "key": "workDuration",
+      "disabled": true
+    }
+  ],
+  "type": "default",
+  "id": "Form_052cb36",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.3.0"
+  },
+  "executionPlatform": "Camunda Platform",
+  "executionPlatformVersion": "7.17.0",
+  "schemaVersion": 4
+}

@@ -1,0 +1,18 @@
+{
+  "components": [
+    {
+      "text": "### All craftsmen are unavailable right now",
+      "type": "text",
+      "id": "Field_0jnkayx"
+    }
+  ],
+  "type": "default",
+  "id": "Form_1mitfr7",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.3.0"
+  },
+  "executionPlatform": "Camunda Platform",
+  "executionPlatformVersion": "7.17.0",
+  "schemaVersion": 4
+}
